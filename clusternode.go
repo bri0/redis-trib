@@ -8,19 +8,22 @@ import (
 	"strings"
 	"time"
 
+	"os"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/garyburd/redigo/redis"
-	"os"
 )
 
 const (
+	// UnusedHashSlot ...
 	UnusedHashSlot = iota
+	// NewHashSlot ...
 	NewHashSlot
+	// AssignedHashSlot ...
 	AssignedHashSlot
 )
 
-///////////////////////////////////////////////////////////
-// detail info for redis node.
+// NodeInfo detail info for redis node.
 type NodeInfo struct {
 	host string
 	port uint
@@ -39,8 +42,9 @@ type NodeInfo struct {
 	importing  map[int]string
 }
 
-func (self *NodeInfo) HasFlag(flag string) bool {
-	for _, f := range self.flags {
+// HasFlag if node has flag
+func (n *NodeInfo) HasFlag(flag string) bool {
+	for _, f := range n.flags {
 		if strings.Contains(f, flag) {
 			return true
 		}
@@ -48,12 +52,12 @@ func (self *NodeInfo) HasFlag(flag string) bool {
 	return false
 }
 
-func (self *NodeInfo) String() string {
-	return fmt.Sprintf("%s:%d", self.host, self.port)
+// String stringify to host:port
+func (n *NodeInfo) String() string {
+	return fmt.Sprintf("%s:%d", n.host, n.port)
 }
 
-//////////////////////////////////////////////////////////
-// struct of redis cluster node.
+// ClusterNode struct of redis cluster node.
 type ClusterNode struct {
 	r             redis.Conn
 	info          *NodeInfo
@@ -63,6 +67,7 @@ type ClusterNode struct {
 	verbose       bool
 }
 
+// NewClusterNode Create a new Cluster Node
 func NewClusterNode(addr string) (node *ClusterNode) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -81,7 +86,7 @@ func NewClusterNode(addr string) (node *ClusterNode) {
 			importing: make(map[int]string),
 			replicate: "",
 		},
-		dirty: false,
+		dirty:   false,
 		verbose: false,
 	}
 
@@ -92,20 +97,24 @@ func NewClusterNode(addr string) (node *ClusterNode) {
 	return node
 }
 
-func (self *ClusterNode) Host() string {
-	return self.info.host
+// Host ...
+func (c *ClusterNode) Host() string {
+	return c.info.host
 }
 
-func (self *ClusterNode) Port() uint {
-	return self.info.port
+// Port ...
+func (c *ClusterNode) Port() uint {
+	return c.info.port
 }
 
-func (self *ClusterNode) Name() string {
-	return self.info.name
+// Name ...
+func (c *ClusterNode) Name() string {
+	return c.info.name
 }
 
-func (self *ClusterNode) HasFlag(flag string) bool {
-	for _, f := range self.info.flags {
+// HasFlag ...
+func (c *ClusterNode) HasFlag(flag string) bool {
+	for _, f := range c.info.flags {
 		if strings.Contains(f, flag) {
 			return true
 		}
@@ -113,77 +122,94 @@ func (self *ClusterNode) HasFlag(flag string) bool {
 	return false
 }
 
-func (self *ClusterNode) Replicate() string {
-	return self.info.replicate
+// Replicate ...
+func (c *ClusterNode) Replicate() string {
+	return c.info.replicate
 }
 
-func (self *ClusterNode) SetReplicate(nodeId string) {
-	self.info.replicate = nodeId
-	self.dirty = true
+// SetReplicate ...
+func (c *ClusterNode) SetReplicate(nodeID string) {
+	c.info.replicate = nodeID
+	c.dirty = true
 }
 
-func (self *ClusterNode) Weight() int {
-	return self.info.weight
+// Weight ...
+func (c *ClusterNode) Weight() int {
+	return c.info.weight
 }
 
-func (self *ClusterNode) SetWeight(w int) {
-	self.info.weight = w
+// SetWeight ...
+func (c *ClusterNode) SetWeight(w int) {
+	c.info.weight = w
 }
 
-func (self *ClusterNode) Balance() int {
-	return self.info.balance
+// Balance ...
+func (c *ClusterNode) Balance() int {
+	return c.info.balance
 }
 
-func (self *ClusterNode) SetBalance(balance int) {
-	self.info.balance = balance
+// SetBalance ...
+func (c *ClusterNode) SetBalance(balance int) {
+	c.info.balance = balance
 }
 
-func (self *ClusterNode) Slots() map[int]int {
-	return self.info.slots
+// Slots ...
+func (c *ClusterNode) Slots() map[int]int {
+	return c.info.slots
 }
 
-func (self *ClusterNode) Migrating() map[int]string {
-	return self.info.migrating
+// Migrating ...
+func (c *ClusterNode) Migrating() map[int]string {
+	return c.info.migrating
 }
 
-func (self *ClusterNode) Importing() map[int]string {
-	return self.info.importing
+// Importing ...
+func (c *ClusterNode) Importing() map[int]string {
+	return c.info.importing
 }
 
-func (self *ClusterNode) R() redis.Conn {
-	return self.r
+// R ...
+func (c *ClusterNode) R() redis.Conn {
+	return c.r
 }
 
-func (self *ClusterNode) Info() *NodeInfo {
-	return self.info
+// Info ...
+func (c *ClusterNode) Info() *NodeInfo {
+	return c.info
 }
 
-func (self *ClusterNode) IsDirty() bool {
-	return self.dirty
+// IsDirty ...
+func (c *ClusterNode) IsDirty() bool {
+	return c.dirty
 }
 
-func (self *ClusterNode) Friends() []*NodeInfo {
-	return self.friends
+// Friends ...
+func (c *ClusterNode) Friends() []*NodeInfo {
+	return c.friends
 }
 
-func (self *ClusterNode) ReplicasNodes() []*ClusterNode {
-	return self.replicasNodes
+// ReplicasNodes ...
+func (c *ClusterNode) ReplicasNodes() []*ClusterNode {
+	return c.replicasNodes
 }
 
-func (self *ClusterNode) AddReplicasNode(node *ClusterNode) {
-	self.replicasNodes = append(self.replicasNodes, node)
+// AddReplicasNode ...
+func (c *ClusterNode) AddReplicasNode(node *ClusterNode) {
+	c.replicasNodes = append(c.replicasNodes, node)
 }
 
-func (self *ClusterNode) String() string {
-	return fmt.Sprintf("%s:%d", self.info.host, self.info.port)
+// String ...
+func (c *ClusterNode) String() string {
+	return fmt.Sprintf("%s:%d", c.info.host, c.info.port)
 }
 
-func (self *ClusterNode) Connect(abort bool) (err error) {
-	if self.r != nil {
+// Connect ...
+func (c *ClusterNode) Connect(abort bool) (err error) {
+	if c.r != nil {
 		return nil
 	}
 
-	addr := fmt.Sprintf("%s:%d", self.info.host, self.info.port)
+	addr := fmt.Sprintf("%s:%d", c.info.host, c.info.port)
 	//client, err := redis.DialTimeout("tcp", addr, 0, 1*time.Second, 1*time.Second)
 	client, err := redis.Dial("tcp", addr, redis.DialConnectTimeout(60*time.Second))
 	if err != nil {
@@ -204,65 +230,75 @@ func (self *ClusterNode) Connect(abort bool) (err error) {
 		}
 	}
 
-	if self.verbose {
-		logrus.Printf("Connecting to node %s OK", self.String())
+	if c.verbose {
+		logrus.Printf("Connecting to node %s OK", c.String())
 	}
 
-	self.r = client
+	c.r = client
 	return nil
 }
 
-func (self *ClusterNode) Call(cmd string, args ...interface{}) (interface{}, error) {
-	err := self.Connect(true)
+// Call ...
+func (c *ClusterNode) Call(cmd string, args ...interface{}) (interface{}, error) {
+	err := c.Connect(true)
 	if err != nil {
 		return nil, err
 	}
 
-	return self.r.Do(cmd, args...)
+	return c.r.Do(cmd, args...)
 }
 
-func (self *ClusterNode) Dbsize() (int, error) {
-	return redis.Int(self.Call("DBSIZE"))
+// Dbsize ...
+func (c *ClusterNode) Dbsize() (int, error) {
+	return redis.Int(c.Call("DBSIZE"))
 }
 
-func (self *ClusterNode) ClusterAddNode(addr string) (ret string, err error) {
+// ClusterAddNode ...
+func (c *ClusterNode) ClusterAddNode(addr string) (ret string, err error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil || host == "" || port == "" {
-		return "", fmt.Errorf("Bad format of host:port: %s!", addr)
+		return "", fmt.Errorf("bad format of host:port: %s", addr)
 	}
-	return redis.String(self.Call("CLUSTER", "meet", host, port))
+	return redis.String(c.Call("CLUSTER", "meet", host, port))
 }
 
-func (self *ClusterNode) ClusterReplicateWithNodeID(nodeid string) (ret string, err error) {
-	return redis.String(self.Call("CLUSTER", "replicate", nodeid))
+// ClusterReplicateWithNodeID ...
+func (c *ClusterNode) ClusterReplicateWithNodeID(nodeid string) (ret string, err error) {
+	return redis.String(c.Call("CLUSTER", "replicate", nodeid))
 }
 
-func (self *ClusterNode) ClusterForgetNodeID(nodeid string) (ret string, err error) {
-	return redis.String(self.Call("CLUSTER", "forget", nodeid))
+// ClusterForgetNodeID ...
+func (c *ClusterNode) ClusterForgetNodeID(nodeid string) (ret string, err error) {
+	return redis.String(c.Call("CLUSTER", "forget", nodeid))
 }
 
-func (self *ClusterNode) ClusterNodeShutdown() (err error) {
-	self.r.Send("SHUTDOWN")
-	if err = self.r.Flush(); err != nil {
+// ClusterNodeShutdown ...
+func (c *ClusterNode) ClusterNodeShutdown() (err error) {
+	c.r.Send("SHUTDOWN")
+	if err = c.r.Flush(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (self *ClusterNode) ClusterCountKeysInSlot(slot int) (int, error) {
-	return redis.Int(self.Call("CLUSTER", "countkeysinslot", slot))
+// ClusterCountKeysInSlot ...
+func (c *ClusterNode) ClusterCountKeysInSlot(slot int) (int, error) {
+	return redis.Int(c.Call("CLUSTER", "countkeysinslot", slot))
 }
 
-func (self *ClusterNode) ClusterGetKeysInSlot(slot int, pipeline int) (string, error) {
-	return redis.String(self.Call("CLUSTER", "getkeysinslot", slot, pipeline))
+// ClusterGetKeysInSlot ...
+func (c *ClusterNode) ClusterGetKeysInSlot(slot int, pipeline int) (string, error) {
+	return redis.String(c.Call("CLUSTER", "getkeysinslot", slot, pipeline))
 }
 
-func (self *ClusterNode) ClusterSetSlot(slot int, cmd string) (string, error) {
-	return redis.String(self.Call("CLUSTER", "setslot", slot, cmd, self.Name()))
+// ClusterSetSlot ...
+func (c *ClusterNode) ClusterSetSlot(slot int, cmd string) (string, error) {
+	return redis.String(c.Call("CLUSTER", "setslot", slot, cmd, c.Name()))
 }
 
-func (self *ClusterNode) AssertCluster() bool {
-	info, err := redis.String(self.Call("INFO", "cluster"))
+// AssertCluster ...
+func (c *ClusterNode) AssertCluster() bool {
+	info, err := redis.String(c.Call("INFO", "cluster"))
 	if err != nil ||
 		!strings.Contains(info, "cluster_enabled:1") {
 		return false
@@ -271,21 +307,23 @@ func (self *ClusterNode) AssertCluster() bool {
 	return true
 }
 
-func (self *ClusterNode) AssertEmpty() bool {
+// AssertEmpty ...
+func (c *ClusterNode) AssertEmpty() bool {
 
-	info, err := redis.String(self.Call("INFO"))
-	db0, e := redis.String(self.Call("INFO", "db0"))
+	info, err := redis.String(c.Call("CLUSTER", "INFO"))
+	db0, e := redis.String(c.Call("INFO", "db0"))
 	if err != nil || !strings.Contains(info, "cluster_known_nodes:1") ||
 		e != nil || strings.Trim(db0, " ") == "" {
-		logrus.Fatalf("Node %s is not empty. Either the node already knows other nodes (check with CLUSTER NODES) or contains some key in database 0.", self.String())
+		logrus.Fatalf("Node %s is not empty. Either the node already knows other nodes (check with CLUSTER NODES) or contains some key in database 0.", c.String())
 	}
 
 	return true
 }
 
-func (self *ClusterNode) LoadInfo(getfriends bool) (err error) {
+// LoadInfo ...
+func (c *ClusterNode) LoadInfo(getfriends bool) (err error) {
 	var result string
-	if result, err = redis.String(self.Call("CLUSTER", "NODES")); err != nil {
+	if result, err = redis.String(c.Call("CLUSTER", "NODES")); err != nil {
 		return err
 	}
 
@@ -323,49 +361,51 @@ func (self *ClusterNode) LoadInfo(getfriends bool) (err error) {
 		}
 
 		if strings.Contains(parts[2], "myself") {
-			self.info = node
+			c.info = node
 			for i := 8; i < len(parts); i++ {
 				slots := parts[i]
 				if strings.Contains(slots, "<") {
 					slotStr := strings.Split(slots, "-<-")
-					slotId, _ := strconv.Atoi(slotStr[0])
-					self.info.importing[slotId] = slotStr[1]
+					slotID, _ := strconv.Atoi(slotStr[0])
+					c.info.importing[slotID] = slotStr[1]
 				} else if strings.Contains(slots, ">") {
 					slotStr := strings.Split(slots, "->-")
-					slotId, _ := strconv.Atoi(slotStr[0])
-					self.info.migrating[slotId] = slotStr[1]
+					slotID, _ := strconv.Atoi(slotStr[0])
+					c.info.migrating[slotID] = slotStr[1]
 				} else if strings.Contains(slots, "-") {
 					slotStr := strings.Split(slots, "-")
-					firstId, _ := strconv.Atoi(slotStr[0])
-					lastId, _ := strconv.Atoi(slotStr[1])
-					self.AddSlots(firstId, lastId)
+					firstID, _ := strconv.Atoi(slotStr[0])
+					lastID, _ := strconv.Atoi(slotStr[1])
+					c.AddSlots(firstID, lastID)
 				} else {
-					firstId, _ := strconv.Atoi(slots)
-					self.AddSlots(firstId, firstId)
+					firstID, _ := strconv.Atoi(slots)
+					c.AddSlots(firstID, firstID)
 				}
 			}
 		} else if getfriends {
-			self.friends = append(self.friends, node)
+			c.friends = append(c.friends, node)
 		}
 	}
 	return nil
 }
 
-func (self *ClusterNode) AddSlots(start, end int) {
+// AddSlots ...
+func (c *ClusterNode) AddSlots(start, end int) {
 	for i := start; i <= end; i++ {
-		self.info.slots[i] = NewHashSlot
+		c.info.slots[i] = NewHashSlot
 	}
-	self.dirty = true
+	c.dirty = true
 }
 
-func (self *ClusterNode) FlushNodeConfig() {
-	if !self.dirty {
+// FlushNodeConfig ...
+func (c *ClusterNode) FlushNodeConfig() {
+	if !c.dirty {
 		return
 	}
 
-	if self.Replicate() != "" {
+	if c.Replicate() != "" {
 		// run replicate cmd
-		if _, err := self.ClusterReplicateWithNodeID(self.Replicate()); err != nil {
+		if _, err := c.ClusterReplicateWithNodeID(c.Replicate()); err != nil {
 			// If the cluster did not already joined it is possible that
 			// the slave does not know the master node yet. So on errors
 			// we return ASAP leaving the dirty flag set, to flush the
@@ -375,68 +415,71 @@ func (self *ClusterNode) FlushNodeConfig() {
 	} else {
 		// TODO: run addslots cmd
 		var array []int
-		for s, value := range self.Slots() {
+		for s, value := range c.Slots() {
 			if value == NewHashSlot {
 				array = append(array, s)
-				self.info.slots[s] = AssignedHashSlot
+				c.info.slots[s] = AssignedHashSlot
 			}
-			self.ClusterAddSlots(array)
+			c.ClusterAddSlots(array)
 		}
 	}
 
-	self.dirty = false
+	c.dirty = false
 }
 
-// XXX: check the error for call CLUSTER addslots
-func (self *ClusterNode) ClusterAddSlots(args ...interface{}) (ret string, err error) {
-	return redis.String(self.Call("CLUSTER", "addslots", args))
+// ClusterAddSlots check the error for call CLUSTER addslots
+func (c *ClusterNode) ClusterAddSlots(args ...interface{}) (ret string, err error) {
+	return redis.String(c.Call("CLUSTER", "addslots", args))
 }
 
-// XXX: check the error for call CLUSTER delslots
-func (self *ClusterNode) ClusterDelSlots(args ...interface{}) (ret string, err error) {
-	return redis.String(self.Call("CLUSTER", "delslots", args))
+// ClusterDelSlots check the error for call CLUSTER delslots
+func (c *ClusterNode) ClusterDelSlots(args ...interface{}) (ret string, err error) {
+	return redis.String(c.Call("CLUSTER", "delslots", args))
 }
 
-func (self *ClusterNode) ClusterBumpepoch() (ret string, err error) {
-	return redis.String(self.Call("CLUSTER", "bumpepoch"))
+// ClusterBumpepoch ...
+func (c *ClusterNode) ClusterBumpepoch() (ret string, err error) {
+	return redis.String(c.Call("CLUSTER", "bumpepoch"))
 }
 
-func (self *ClusterNode) InfoString() (result string) {
+// InfoString ...
+func (c *ClusterNode) InfoString() (result string) {
 	var role = "M"
 
-	if !self.HasFlag("master") {
+	if !c.HasFlag("master") {
 		role = "S"
 	}
 
-	keys := make([]int, 0, len(self.Slots()))
+	keys := make([]int, 0, len(c.Slots()))
 
-	for k := range self.Slots() {
+	for k := range c.Slots() {
 		keys = append(keys, k)
 	}
 	sort.Ints(keys)
 	slotstr := MergeNumArray2NumRange(keys)
 
-	if self.Replicate() != "" && self.dirty {
-		result = fmt.Sprintf("S: %s %s", self.info.name, self.String())
+	if c.Replicate() != "" && c.dirty {
+		result = fmt.Sprintf("S: %s %s", c.info.name, c.String())
 	} else {
 		// fix myself flag not the first element of []slots
 		result = fmt.Sprintf("%s: %s %s\n\t   slots:%s (%d slots) %s",
-			role, self.info.name, self.String(), slotstr, len(self.Slots()), strings.Join(self.info.flags[1:], ","))
+			role, c.info.name, c.String(), slotstr, len(c.Slots()), strings.Join(c.info.flags[1:], ","))
 	}
 
-	if self.Replicate() != "" {
-		result = result + fmt.Sprintf("\n\t   replicates %s", self.Replicate())
+	if c.Replicate() != "" {
+		result = result + fmt.Sprintf("\n\t   replicates %s", c.Replicate())
 	} else {
-		result = result + fmt.Sprintf("\n\t   %d additional replica(s)", len(self.replicasNodes))
+		result = result + fmt.Sprintf("\n\t   %d additional replica(s)", len(c.replicasNodes))
 	}
 
 	return result
 }
 
-func (self *ClusterNode) GetConfigSignature() string {
+// GetConfigSignature ...
+func (c *ClusterNode) GetConfigSignature() string {
 	config := []string{}
 
-	result, err := redis.String(self.Call("CLUSTER", "NODES"))
+	result, err := redis.String(c.Call("CLUSTER", "NODES"))
 	if err != nil {
 		return ""
 	}
@@ -473,7 +516,8 @@ func (self *ClusterNode) GetConfigSignature() string {
 }
 
 ///////////////////////////////////////////////////////////
-// some useful struct contains cluster node.
+
+// ClusterArray some useful struct contains cluster node.
 type ClusterArray []ClusterNode
 
 func (c ClusterArray) Len() int {
@@ -488,6 +532,7 @@ func (c ClusterArray) Less(i, j int) bool {
 	return len(c[i].Slots()) < len(c[j].Slots())
 }
 
+// MovedNode ...
 type MovedNode struct {
 	Source ClusterNode
 	Slot   int
