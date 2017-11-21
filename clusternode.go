@@ -312,8 +312,12 @@ func (c *ClusterNode) AssertEmpty() bool {
 
 	info, err := redis.String(c.Call("CLUSTER", "INFO"))
 	db0, e := redis.String(c.Call("INFO", "db0"))
+	db0 = strings.Trim(db0, " ")
+	// Check if db0 is empty
+	empty := db0 == "" || strings.Contains(db0, "db0:keys=0,expires")
+	fmt.Println(strings.Trim(db0, " ") == "")
 	if err != nil || !strings.Contains(info, "cluster_known_nodes:1") ||
-		e != nil || strings.Trim(db0, " ") == "" {
+		e != nil || !empty {
 		logrus.Fatalf("Node %s is not empty. Either the node already knows other nodes (check with CLUSTER NODES) or contains some key in database 0.", c.String())
 	}
 
